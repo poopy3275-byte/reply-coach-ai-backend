@@ -1,0 +1,38 @@
+{
+  "users": {
+    "kjor1010@gmail.com": {
+      "email": "kjor1010@gmail.com",
+      "creditsLeft": 188,
+      "creditDate": "2026-05-01",
+      "plan": "free",
+      "paidCredits": 10,
+      "totalGenerations": 20,
+      "createdAt": "2026-04-28T09:59:09.822Z",
+      "lastUsedAt": "2026-05-01T00:01:34.874Z",
+      "lastTopUpAt": "2026-04-29T09:43:00.443Z",
+      "lastCreditAddedAt": "2026-04-30T07:46:03.110Z",
+      "lastCreditReason": "Stripe credit pack: pack_150",
+      "lastFeatureUsed": "coach"
+    }
+  },
+  "payments": {
+    "cs_test_a1Ou33t8mtiWoXplT3VZRh4aZ7D8q1qwDfe5ZdHEOTbh86yXrJOcnXphph": {
+      "sessionId": "cs_test_a1Ou33t8mtiWoXplT3VZRh4aZ7D8q1qwDfe5ZdHEOTbh86yXrJOcnXphph",
+      "email": "kjor1010@gmail.com",
+      "type": "credit_pack",
+      "packId": "pack_50",
+      "creditsAdded": 50,
+      "amountTotal": 500,
+      "status": "completed",
+      "processedAt": "2026-04-29T09:43:00.446Z"
+    },
+    "cs_test_a1zyIeGq2ZRp7lBOXoL3llscgLB0qzQk8lUBHwTRk2L5ciTFuZovOl1nAj": {
+      "id": "cs_test_a1zyIeGq2ZRp7lBOXoL3llscgLB0qzQk8lUBHwTRk2L5ciTFuZovOl1nAj",
+      "email": "kjor1010@gmail.com",
+      "creditsAdded": 150,
+      "reason": "Stripe credit pack: pack_150",
+      "status": "processed",
+      "processedAt": "2026-04-30T07:46:03.112Z"
+    }
+  }
+}
