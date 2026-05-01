@@ -19,7 +19,7 @@ const DATABASE_FILE = "./database.json";
 const DAILY_FREE_CREDITS = 3;
 const APP_URL = "https://reply-coach-ai-backend.onrender.com";
 
-const STRIPE_WEBHOOK_SECRET = "whsec_508087f90923dbe109ae0b16b4e75be3b2fd599094a08fd699109f88d42998b0";
+const STRIPE_WEBHOOK_SECRET = "whsec_4KZv2IFajW8YhArOldyVrcWfywOgOr4M";
 
 const CREDIT_COSTS = {
   reply: 1,
