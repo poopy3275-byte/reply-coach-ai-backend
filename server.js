@@ -13,12 +13,13 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe("sk_test_51TRTvcAZVnMl0sf8ruhmtAPY0h9gxAlcRoa00D7PwhV4tuTaTMinmEsLCKKP9EQJHcw99WvryNNjZVOCLCVYbLUE00DiVe7EUB");
 
 const DATABASE_FILE = "./database.json";
 const DAILY_FREE_CREDITS = 3;
-const APP_URL = process.env.APP_URL || "http://localhost:3000";
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+const APP_URL = "https://reply-coach-ai-backend.onrender.com";
+
+const STRIPE_WEBHOOK_SECRET = "whsec_508087f90923dbe109ae0b16b4e75be3b2fd599094a08fd699109f88d42998b0";
 
 const CREDIT_COSTS = {
   reply: 1,
@@ -145,6 +146,10 @@ function savePayment(id, paymentData) {
 }
 
 function addCredits(email, credits, reason, paymentId) {
+  if (paymentAlreadyProcessed(paymentId)) {
+    return getUser(email);
+  }
+
   const user = getUser(email);
 
   const updatedUser = updateUser(email, {
@@ -180,9 +185,6 @@ function getTemplateLabel(type) {
   return labels[type] || "Professional message";
 }
 
-/*
-  Stripe webhook must use express.raw BEFORE express.json.
-*/
 app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   let event;
 
@@ -224,7 +226,8 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
           return res.json({ received: true });
         }
 
-        addCredits(email, pack.credits, `Stripe credit pack: ${packId}`, session.id);
+        const updatedUser = addCredits(email, pack.credits, `Stripe credit pack: ${packId}`, session.id);
+        console.log(`Credits added: ${pack.credits} to ${updatedUser.email}. New balance: ${updatedUser.creditsLeft}`);
       }
 
       if (type === "subscription") {
@@ -303,6 +306,10 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
 
 app.use(cors());
 app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.send("Reply Coach AI backend is running.");
+});
 
 app.post("/login", (req, res) => {
   const email = normalizeEmail(req.body.email);
@@ -718,6 +725,8 @@ Reply as the coach:
   }
 });
 
-app.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
