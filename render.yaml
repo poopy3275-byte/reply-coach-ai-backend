@@ -3,7 +3,6 @@ services:
     name: reply-coach-ai-backend
     runtime: node
     plan: starter
-    repo: https://github.com/poopy3275-byte/reply-coach-ai-backend
     branch: main
     buildCommand: npm install
     startCommand: node server.js
