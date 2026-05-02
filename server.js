@@ -13,14 +13,14 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const stripe = new Stripe("sk_test_51TRTvcAZVnMl0sf8ruhmtAPY0h9gxAlcRoa00D7PwhV4tuTaTMinmEsLCKKP9EQJHcw99WvryNNjZVOCLCVYbLUE00DiVe7EUB");
+const stripe = new Stripe(process.env.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
+);
 
 const DATABASE_FILE = "./database.json";
 const DAILY_FREE_CREDITS = 3;
 const APP_URL = "https://reply-coach-ai-backend.onrender.com";
 
-const STRIPE_WEBHOOK_SECRET = "whsec_4KZv2IFajW8YhArOldyVrcWfywOgOr4M";
-
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const CREDIT_COSTS = {
   reply: 1,
   template: 2,
