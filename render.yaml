@@ -6,12 +6,10 @@ services:
     branch: main
     buildCommand: npm install
     startCommand: node server.js
+
+    envVarGroups:
+      - Reply-Coach-Ai_Secrets
+
     envVars:
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: STRIPE_SECRET_KEY
-        sync: false
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false
       - key: APP_URL
         value: https://reply-coach-ai-backend.onrender.com
