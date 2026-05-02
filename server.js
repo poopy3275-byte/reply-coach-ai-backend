@@ -5,7 +5,9 @@ import OpenAI from "openai";
 import fs from "fs";
 import Stripe from "stripe";
 
-dotenv.config();
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 
 const app = express();
 
