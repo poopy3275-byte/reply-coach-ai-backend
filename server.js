@@ -13,9 +13,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const stripe = new Stripe(process.env.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
-);
-
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const DATABASE_FILE = "./database.json";
 const DAILY_FREE_CREDITS = 3;
 const APP_URL = "https://reply-coach-ai-backend.onrender.com";
