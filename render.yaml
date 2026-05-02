@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: reply-coach-ai-backend
+    runtime: node
+    plan: starter
+    repo: https://github.com/poopy3275-byte/reply-coach-ai-backend
+    branch: main
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: APP_URL
+        value: https://reply-coach-ai-backend.onrender.com
