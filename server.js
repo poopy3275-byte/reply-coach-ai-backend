@@ -10,31 +10,47 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const app = express();
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+
 console.log("ENV CHECK:", {
-  hasOpenAI: Boolean(process.env.OPENAI_API_KEY),
-  hasStripeKey: Boolean(process.env.STRIPE_SECRET_KEY),
-  stripeKeyMode: process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_")
+  hasOpenAI: Boolean(OPENAI_API_KEY),
+  hasStripeKey: Boolean(STRIPE_SECRET_KEY),
+  stripeKeyMode: STRIPE_SECRET_KEY?.startsWith("sk_live_")
     ? "live"
-    : process.env.STRIPE_SECRET_KEY?.startsWith("sk_test_")
+    : STRIPE_SECRET_KEY?.startsWith("sk_test_")
     ? "test"
     : "missing_or_invalid",
-  hasWebhookSecret: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
-  webhookSecretMode: process.env.STRIPE_WEBHOOK_SECRET?.startsWith("whsec_")
+  hasWebhookSecret: Boolean(STRIPE_WEBHOOK_SECRET),
+  webhookSecretMode: STRIPE_WEBHOOK_SECRET?.startsWith("whsec_")
     ? "valid_prefix"
     : "missing_or_invalid",
-  webhookSecretLength: process.env.STRIPE_WEBHOOK_SECRET?.length || 0,
 });
+
+if (!OPENAI_API_KEY) {
+  throw new Error("Missing OPENAI_API_KEY");
+}
+
+if (!STRIPE_SECRET_KEY) {
+  throw new Error("Missing STRIPE_SECRET_KEY");
+}
+
+if (!STRIPE_WEBHOOK_SECRET) {
+  throw new Error("Missing STRIPE_WEBHOOK_SECRET");
+}
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: OPENAI_API_KEY,
 });
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(STRIPE_SECRET_KEY);
+
 const DATABASE_FILE = "./database.json";
 const DAILY_FREE_CREDITS = 3;
 const APP_URL = "https://reply-coach-ai-backend.onrender.com";
 
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const CREDIT_COSTS = {
   reply: 1,
   template: 2,
@@ -55,7 +71,10 @@ const PRO_PLAN = {
 
 function loadDatabase() {
   if (!fs.existsSync(DATABASE_FILE)) {
-    fs.writeFileSync(DATABASE_FILE, JSON.stringify({ users: {}, payments: {} }, null, 2));
+    fs.writeFileSync(
+      DATABASE_FILE,
+      JSON.stringify({ users: {}, payments: {} }, null, 2)
+    );
   }
 
   const database = JSON.parse(fs.readFileSync(DATABASE_FILE, "utf8"));
@@ -199,133 +218,144 @@ function getTemplateLabel(type) {
   return labels[type] || "Professional message";
 }
 
-app.post("/stripe/webhook", express.raw({ type: "*/*" }), async (req, res) => {
+/*
+  IMPORTANT:
+  Stripe webhook MUST stay above app.use(express.json()).
+  Stripe needs the raw body for signature verification.
+*/
+app.post(
+  "/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    let event;
 
-  try {
-    const signature = req.headers["stripe-signature"];
+    try {
+      const signature = req.headers["stripe-signature"];
 
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      signature,
-      STRIPE_WEBHOOK_SECRET
-    );
-  } catch (error) {
-    console.error("Webhook signature verification failed:", error.message);
-    return res.status(400).send(`Webhook Error: ${error.message}`);
-  }
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        signature,
+        STRIPE_WEBHOOK_SECRET
+      );
+    } catch (error) {
+      console.error("Webhook signature verification failed:", error.message);
+      return res.status(400).send(`Webhook Error: ${error.message}`);
+    }
 
-  try {
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
+    try {
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object;
 
-      if (paymentAlreadyProcessed(session.id)) {
-        return res.json({ received: true, duplicate: true });
-      }
+        if (paymentAlreadyProcessed(session.id)) {
+          return res.json({ received: true, duplicate: true });
+        }
 
-      const email = normalizeEmail(session.metadata?.email);
-      const type = session.metadata?.type;
+        const email = normalizeEmail(session.metadata?.email);
+        const type = session.metadata?.type;
 
-      if (!email || !email.includes("@")) {
-        console.error("Missing email in Stripe metadata");
-        return res.json({ received: true });
-      }
-
-      if (type === "credit_pack") {
-        const packId = session.metadata?.packId;
-        const pack = CREDIT_PACKS[packId];
-
-        if (!pack) {
-          console.error("Invalid pack ID:", packId);
+        if (!email || !email.includes("@")) {
+          console.error("Missing email in Stripe metadata");
           return res.json({ received: true });
         }
 
-        const updatedUser = addCredits(email, pack.credits, `Stripe credit pack: ${packId}`, session.id);
-        console.log(`Credits added: ${pack.credits} to ${updatedUser.email}. New balance: ${updatedUser.creditsLeft}`);
+        if (type === "credit_pack") {
+          const packId = session.metadata?.packId;
+          const pack = CREDIT_PACKS[packId];
+
+          if (!pack) {
+            console.error("Invalid pack ID:", packId);
+            return res.json({ received: true });
+          }
+
+          const updatedUser = addCredits(
+            email,
+            pack.credits,
+            `Stripe credit pack: ${packId}`,
+            session.id
+          );
+
+          console.log(
+            `Credits added: ${pack.credits} to ${updatedUser.email}. New balance: ${updatedUser.creditsLeft}`
+          );
+        }
+
+        if (type === "subscription") {
+          getUser(email);
+
+          const updatedUser = updateUser(email, {
+            plan: "pro",
+            creditsLeft: PRO_PLAN.credits,
+            proCreditsPerMonth: PRO_PLAN.credits,
+            stripeCustomerId: session.customer,
+            stripeSubscriptionId: session.subscription,
+            proStartedAt: new Date().toISOString(),
+            lastSubscriptionCreditAt: new Date().toISOString(),
+          });
+
+          savePayment(session.id, {
+            id: session.id,
+            email,
+            creditsAdded: PRO_PLAN.credits,
+            reason: "Stripe Pro subscription started",
+            status: "processed",
+            processedAt: new Date().toISOString(),
+          });
+
+          console.log("Pro subscription activated:", updatedUser.email);
+        }
       }
 
-      if (type === "subscription") {
-        getUser(email);
+      if (event.type === "invoice.paid") {
+        const invoice = event.data.object;
 
-        const updatedUser = updateUser(email, {
+        if (invoice.billing_reason !== "subscription_cycle") {
+          return res.json({ received: true });
+        }
+
+        if (paymentAlreadyProcessed(invoice.id)) {
+          return res.json({ received: true, duplicate: true });
+        }
+
+        const subscriptionId = invoice.subscription;
+        const database = loadDatabase();
+
+        const user = Object.values(database.users).find(
+          (u) => u.stripeSubscriptionId === subscriptionId
+        );
+
+        if (!user) {
+          console.error("No user found for subscription renewal:", subscriptionId);
+          return res.json({ received: true });
+        }
+
+        updateUser(user.email, {
           plan: "pro",
           creditsLeft: PRO_PLAN.credits,
-          proCreditsPerMonth: PRO_PLAN.credits,
-          stripeCustomerId: session.customer,
-          stripeSubscriptionId: session.subscription,
-          proStartedAt: new Date().toISOString(),
           lastSubscriptionCreditAt: new Date().toISOString(),
         });
 
-        savePayment(session.id, {
-          id: session.id,
-          email,
+        savePayment(invoice.id, {
+          id: invoice.id,
+          email: user.email,
           creditsAdded: PRO_PLAN.credits,
-          reason: "Stripe Pro subscription started",
+          reason: "Stripe Pro monthly renewal",
           status: "processed",
           processedAt: new Date().toISOString(),
         });
 
-        console.log("Pro subscription activated:", updatedUser.email);
+        console.log("Monthly Pro credits reset for:", user.email);
       }
+
+      res.json({ received: true });
+    } catch (error) {
+      console.error("Stripe webhook handling error:", error);
+      res.status(500).json({ error: "Webhook handling failed" });
     }
-
-    if (event.type === "invoice.paid") {
-      const invoice = event.data.object;
-
-      if (invoice.billing_reason !== "subscription_cycle") {
-        return res.json({ received: true });
-      }
-
-      if (paymentAlreadyProcessed(invoice.id)) {
-        return res.json({ received: true, duplicate: true });
-      }
-
-      const subscriptionId = invoice.subscription;
-      const database = loadDatabase();
-
-      const user = Object.values(database.users).find(
-        (u) => u.stripeSubscriptionId === subscriptionId
-      );
-
-      if (!user) {
-        console.error("No user found for subscription renewal:", subscriptionId);
-        return res.json({ received: true });
-      }
-
-      updateUser(user.email, {
-        plan: "pro",
-        creditsLeft: PRO_PLAN.credits,
-        lastSubscriptionCreditAt: new Date().toISOString(),
-      });
-
-      savePayment(invoice.id, {
-        id: invoice.id,
-        email: user.email,
-        creditsAdded: PRO_PLAN.credits,
-        reason: "Stripe Pro monthly renewal",
-        status: "processed",
-        processedAt: new Date().toISOString(),
-      });
-
-      console.log("Monthly Pro credits reset for:", user.email);
-    }
-
-    res.json({ received: true });
-  } catch (error) {
-    console.error("Stripe webhook handling error:", error);
-    res.status(500).json({ error: "Webhook handling failed" });
   }
-});
+);
 
 app.use(cors());
-
-app.use((req, res, next) => {
-  if (req.originalUrl === "/stripe/webhook") {
-    return next();
-  }
-
-  return express.json()(req, res, next);
-});
+app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("Reply Coach AI backend is running.");
