@@ -10,6 +10,20 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const app = express();
+console.log("ENV CHECK:", {
+  hasOpenAI: Boolean(process.env.OPENAI_API_KEY),
+  hasStripeKey: Boolean(process.env.STRIPE_SECRET_KEY),
+  stripeKeyMode: process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_")
+    ? "live"
+    : process.env.STRIPE_SECRET_KEY?.startsWith("sk_test_")
+    ? "test"
+    : "missing_or_invalid",
+  hasWebhookSecret: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
+  webhookSecretMode: process.env.STRIPE_WEBHOOK_SECRET?.startsWith("whsec_")
+    ? "valid_prefix"
+    : "missing_or_invalid",
+  webhookSecretLength: process.env.STRIPE_WEBHOOK_SECRET?.length || 0,
+});
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
