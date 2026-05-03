@@ -185,8 +185,7 @@ function getTemplateLabel(type) {
   return labels[type] || "Professional message";
 }
 
-app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (req, res) => {
-  let event;
+app.post("/stripe/webhook", express.raw({ type: "*/*" }), async (req, res) => {
 
   try {
     const signature = req.headers["stripe-signature"];
@@ -305,7 +304,14 @@ app.post("/stripe/webhook", express.raw({ type: "application/json" }), async (re
 });
 
 app.use(cors());
-app.use(express.json());
+
+app.use((req, res, next) => {
+  if (req.originalUrl === "/stripe/webhook") {
+    return next();
+  }
+
+  return express.json()(req, res, next);
+});
 
 app.get("/", (req, res) => {
   res.send("Reply Coach AI backend is running.");
