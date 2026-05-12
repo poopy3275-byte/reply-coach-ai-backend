@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Reply Coach AI</title>
+
+  <style>
+    body {
+      width: 410px;
+      font-family: Arial, sans-serif;
+      padding: 16px;
+      background: #111827;
+      color: white;
+    }
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: bold;
+      color: #38bdf8;
+    }
+
+    .brand img {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+    }
+
+    .help-btn {
+      width: auto;
+      padding: 6px 10px;
+      background: #374151;
+      color: white;
+      font-size: 12px;
+    }
+
+    .help-box {
+      display: none;
+      background: #1f2937;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #d1d5db;
+      line-height: 1.4;
+    }
+
+    .account-box, .logged-in-box, .buy-box, .reply-card, .coach-message {
+      background: #1f2937;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .logged-in-box {
+      display: none;
+      font-size: 12px;
+      color: #d1d5db;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: #374151;
+      color: white;
+      font-size: 12px;
+      padding: 9px;
+    }
+
+    .tab-btn.active {
+      background: #38bdf8;
+      color: #111827;
+    }
+
+    .mode {
+      display: none;
+    }
+
+    .mode.active {
+      display: block;
+    }
+
+    input, textarea, select, button {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    input, textarea, select {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      height: 105px;
+      resize: none;
+    }
+
+    button {
+      padding: 11px;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background: #38bdf8;
+      color: #111827;
+      font-weight: bold;
+      margin-top: 6px;
+    }
+
+    .logout-btn {
+      background: #374151;
+      color: white;
+      font-size: 12px;
+      padding: 8px;
+    }
+
+    .reply-style {
+      color: #38bdf8;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .reply-text, .template-output {
+      background: #111827;
+      padding: 10px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .reply-why {
+      font-size: 12px;
+      color: #d1d5db;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .copy-single-btn {
+      background: #22c55e;
+    }
+
+    .buy-title {
+      color: #38bdf8;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .pack-btn {
+      background: #f472b6;
+      color: #111827;
+    }
+
+    .subscribe-btn {
+      background: #a78bfa;
+      color: #111827;
+    }
+
+    .status {
+      font-size: 12px;
+      margin-top: 8px;
+      color: #9ca3af;
+      line-height: 1.4;
+    }
+
+    .coach-window {
+      background: #111827;
+      border-radius: 10px;
+      padding: 10px;
+      min-height: 120px;
+      max-height: 250px;
+      overflow-y: auto;
+      margin-bottom: 8px;
+    }
+
+    .coach-message {
+      margin-bottom: 8px;
+      line-height: 1.4;
+      font-size: 13px;
+    }
+
+    .coach-assistant {
+      border-left: 3px solid #38bdf8;
+    }
+
+    .coach-user {
+      border-left: 3px solid #22c55e;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div class="app-header">
+    <div class="brand">
+      <img src="icons/icon48.png" />
+      <span>Reply Coach AI</span>
+    </div>
+
+
+<button id="helpBtn" class="help-btn">?</button>
+
+
+  </div>
+
+  <div id="helpBox" class="help-box">
+    <b>Reply Coach:</b> Paste a message and get 4 improved replies (1 credit).<br><br>
+    <b>Templates:</b> Generate professional messages like resignations, complaints, and requests (2 credits).<br><br>
+    <b>Live Coach:</b> Get real-time communication advice and suggested wording (3 credits per response).
+  </div>
+
+  <div id="accountBox" class="account-box">
+    <input id="emailInput" type="email" placeholder="Enter your email" />
+    <button id="loginBtn">Continue</button>
+  </div>
+
+  <div id="loggedInBox" class="logged-in-box">
+    <div id="loggedInStatus"></div>
+    <button id="logoutBtn" class="logout-btn">Switch Account</button>
+  </div>
+
+  <div class="tabs">
+    <button id="replyTab" class="tab-btn active">Reply</button>
+    <button id="templatesTab" class="tab-btn">Templates</button>
+    <button id="coachTab" class="tab-btn">Live Coach</button>
+  </div>
+
+  <div id="replyMode" class="mode active">
+    <textarea id="messageInput" placeholder="Paste the message you want help replying to..."></textarea>
+    <button id="generateReplyBtn">Generate Replies</button>
+    <div id="replyResult"></div>
+  </div>
+
+  <div id="templatesMode" class="mode">
+    <select id="templateType">
+      <option value="two_week_resignation">Two-week resignation</option>
+      <option value="thirty_day_moving_notice">30-day moving notice</option>
+      <option value="landlord_complaint">Formal complaint to landlord</option>
+      <option value="refund_request">Refund request</option>
+      <option value="follow_up_email">Follow-up email</option>
+      <option value="apology_message">Apology message</option>
+      <option value="boundary_setting">Boundary-setting message</option>
+      <option value="payment_request">Ask for payment owed</option>
+    </select>
+
+
+<textarea id="templateDetails" placeholder="Add details..."></textarea>
+
+<button id="generateTemplateBtn">Generate Professional Message</button>
+<div id="templateResult"></div>
+
+
+  </div>
+
+  <div id="coachMode" class="mode">
+    <div id="coachWindow" class="coach-window"></div>
+
+
+<textarea id="coachInput" placeholder="What are you having trouble communicating with?"></textarea>
+
+<button id="sendCoachBtn">Ask Reply Coach</button>
+
+
+  </div>
+
+  <div class="buy-box">
+    <div class="buy-title">Upgrade or Buy Credits</div>
+
+
+<button id="subscribeBtn" class="subscribe-btn">
+  Pro Plan - $20/month (500 credits)
+</button>
+
+<button class="pack-btn" data-pack="pack_50">50 Credits - $5</button>
+<button class="pack-btn" data-pack="pack_150">150 Credits - $10</button>
+<button class="pack-btn" data-pack="pack_500">500 Credits - $25</button>
+
+ <div class="status">
+  Payments are secure via Stripe. Reply: 1 credit | Templates: 2 credits | Live Coach: 3 credits
+ </div>
+
+  <script src="popup.js"></script>
+
+</body>
+</html>
